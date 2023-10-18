@@ -45,6 +45,26 @@ def add_time_diff_per_aid_col(df, order_by_time=False):
         df = df.sort_values('time').reset_index(drop=True)
     return df
 
+def add_time_diff_since_last_msg_col(df, order_by_time=False):
+    """
+    Sorts df by time and computes the time difference between each message and the 
+    previous message irrespective of the aid. Adds this difference in a new column "time_diff_since_last_msg".
+    If there's no previous message, the value will be NaN.
+    Returns df with the new column.
+    """
+    
+    # Sort the dataframe by time
+    df.sort_values('time', inplace=True)
+    
+    # Compute the time difference from the previous row for all rows
+    df['time_diff_since_last_msg'] = df['time'].diff()
+    
+    # Sort by 'time' if order_by_time is True
+    if order_by_time:
+        df = df.sort_values('time').reset_index(drop=True)
+    
+    return df
+
 def make_can_df(log_filepath):
     """
     Puts candump data into a dataframe with columns 'time', 'aid', and 'data'
