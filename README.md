@@ -1,4 +1,4 @@
-# Time-Based IDS
+# Model-Based IDS
 
 This project aims to create a model-based intrusion detection system (IDS) for Controler Area Networks (CAN)
 
