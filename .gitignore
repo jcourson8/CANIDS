@@ -1,4 +1,6 @@
-/data
+/data/ambient
+/data/attacks
+
 .DS_Store
 
 # GENERAL
