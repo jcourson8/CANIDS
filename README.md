@@ -19,7 +19,11 @@ DATA_PATH=DATA-DIR-PATH-GOES-HERE
 Example use:
 ```py
 from dotenv import load_dotenv
-data_path = load_dotenv("DATA_PATH")
+import os
+
+load_dotenv()
+
+data_path = os.getenv('DATA_PATH')
 ambient_path = f"{data_path}/ambient"
 ```
 
