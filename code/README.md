@@ -1,0 +1,1 @@
+run loaddatatoparquet.py initially
