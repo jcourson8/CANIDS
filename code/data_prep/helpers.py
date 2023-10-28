@@ -8,7 +8,7 @@ def add_actual_attack_col(df, intervals, aid, payload):
 
     if aid == "XXX":
         df['actual_attack'] = df.time.apply(lambda x: sum(
-            x >= intvl[0] and x <= intvl[1] for intvl in intervals) >= 1) & (df.data == payload)
+            x >= intvl[0] and x <= intvl[1] for intvl in intervals) >= 1) & (df.data.str.match(payload))
     else:
         df['actual_attack'] = df.time.apply(lambda x: sum(
             x >= intvl[0] and x <= intvl[1] for intvl in intervals) >= 1) & (df.aid == aid)

@@ -11,22 +11,20 @@ This project aims to create a model-based intrusion detection system (IDS) for C
 ```bash
 pip install -r requirements.txt
 ```
-4. Install and dump the contents of the [ROAD Dataset](https://road.nyc3.digitaloceanspaces.com/road.zip) in the data directory.
-5. Because this is a shared repo create a .env file in the project root and add the full path of your data directory. (Sometimes jupyter notebooks has issue with "../")
+4. Because this is a shared repo create a .env file in the project root and add the full path of your data directory. (Sometimes jupyter notebooks has issue with "../")
 ```dotenv
 DATA_PATH=DATA-DIR-PATH-GOES-HERE
 ```
+5. Use CanDataLoader to download and process the dataset. The data will be saved to parquet files and will be pulled from these subsequently.
 Example use:
 ```py
+from CanDataLoader import CanDataLoader
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
-
 data_path = os.getenv('DATA_PATH')
-ambient_path = f"{data_path}/ambient"
+dataset = CanDataLoader(data_path, log_verbosity=1)
 ```
-
 
 
 ## README Checklist

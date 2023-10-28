@@ -75,11 +75,17 @@ ambient_dfs_with_time_diff = {}
 for key, ambient_file_df in ambient_dfs.items():
     ambient_dfs_with_time_diff[key] = add_time_diff_per_aid_col(ambient_file_df, True)
     ambient_dfs_with_time_diff[key] = add_time_diff_since_last_msg_col(ambient_file_df, True)
+    if ambient_metadata[key]['injection_id'] != 'XXX':
+        ambient_dfs_with_time_diff[key] = add_actual_attack_col(ambient_file_df, ambient_metadata, True)
 
 attack_dfs_with_time_diff = {}
 for key, attack_file_df in attack_dfs.items():
     attack_dfs_with_time_diff[key] = add_time_diff_per_aid_col(attack_file_df, True)
     attack_dfs_with_time_diff[key] = add_time_diff_since_last_msg_col(attack_file_df, True)
+    if attack_metadata[key]['injection_id'] != 'XXX':
+        attack_dfs_with_time_diff[key] = add_actual_attack_col(attack_file_df, attack_metadata, True)
+
+
 
 for df_keys in ambient_dfs_with_time_diff.keys():
     ambient_parquet_file = os.path.join(ambient_dir, f'{df_keys}_with_time_diffs.parquet')
