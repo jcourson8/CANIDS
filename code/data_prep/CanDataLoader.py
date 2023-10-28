@@ -87,6 +87,8 @@ class CanDataLoader():
                 self.preprocessed_ambient_dfs, self.preprocessed_attack_dfs = self._load_parquet_data()
                 self.log('Processing parquet files...')
                 self.processed_ambient_dfs, self.processed_attack_dfs = self._process_can_data()
+                self.log('Saving processed parquet files...')
+                self._save_data(is_processed=True)
                 self.log('Done processing CAN data.')
 
         else:
@@ -294,11 +296,12 @@ class CanDataLoader():
     
     def _add_actual_attack_col(self, processed_ambient_dfs, processed_attack_dfs):
         self.log('Adding actual attack column for ambient data...', level=3)
-        for key in self.ambient_metadata.keys():
+        for key in self.ambient_files:
             processed_ambient_dfs[key]['actual_attack'] = False
 
         self.log('Adding actual attack column for attack data...', level=3)
-        for key, attack_file_metadata in self.attack_metadata.items():
+        for key in self.attack_files:
+            attack_file_metadata = self.attack_metadata[key]
             self.log(f'Adding actual attack column for {key}...', level=4)
             injection_data_str = attack_file_metadata.get("injection_data_str")
             injection_id = attack_file_metadata.get("injection_id")
