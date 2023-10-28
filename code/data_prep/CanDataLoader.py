@@ -9,6 +9,15 @@ import shutil
 
 DATASET_DOWNLOAD_LINK = "https://road.nyc3.digitaloceanspaces.com/road.zip"
 
+def payload_matches(payload, injection_data_str):
+    for i, value in enumerate(payload):
+        if injection_data_str[i] == "X":
+            continue
+        else:
+            if value != injection_data_str[i]:
+                return False
+    return True
+
 class Logger():
     def __init__(self, log_verbosity=0):
         self.log_verbosity = log_verbosity
@@ -20,28 +29,36 @@ class Logger():
             padding = "  "*(level-1) 
             print(padding + msg) 
 
-
-
+# Don't worry about this
+# This wonderful mess is how we can easily 
+# iterate through the ambient and attack datas 
+# through an attribute of CanDataLoader
 class CanData():
     def __init__(self, dfs):
         for key, item in dfs.items():
             setattr(self, key, item)
         self._keys = list(dfs.keys())
-        self._index = 0
 
     def __iter__(self):
-        return self
+        return self.CanDataIterator(self)
 
-    def __next__(self):
-        if self._index < len(self._keys):
-            key = self._keys[self._index]
-            self._index += 1
-            return getattr(self, key)
-        else:
-            raise StopIteration
+    class CanDataIterator():
+        def __init__(self, can_data):
+            self._can_data = can_data
+            self._index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            if self._index < len(self._can_data._keys):
+                key = self._can_data._keys[self._index]
+                self._index += 1
+                return getattr(self._can_data, key)
+            else:
+                raise StopIteration
 
         
-
 class CanDataLoader():
     def __init__(self, data_dir_path, log_verbosity=0):
         self.data_dir_path = data_dir_path
@@ -131,7 +148,7 @@ class CanDataLoader():
             self.attack_metadata = load(f)
 
         self.ambient_files = [key for key in self.ambient_metadata.keys() if 'masquerade' not in key]
-        self.attack_files = [key for key in self.attack_metadata.keys() if 'masquerade' in key]
+        self.attack_files = [key for key in self.attack_metadata.keys() if 'masquerade' not in key]
     
     def _is_parquet_files(self):
 
@@ -270,8 +287,42 @@ class CanDataLoader():
             processed_attack_dfs[key] = add_time_diff_per_aid_col(attack_file_df, True)
             processed_attack_dfs[key] = add_time_diff_since_last_msg_col(attack_file_df, True)
 
+        self.log('Annotating data...', level=2)
+        processed_ambient_dfs, processed_attack_dfs = self._add_actual_attack_col(processed_ambient_dfs, processed_attack_dfs)
+
         return processed_ambient_dfs, processed_attack_dfs
     
+    def _add_actual_attack_col(self, processed_ambient_dfs, processed_attack_dfs):
+        self.log('Adding actual attack column for ambient data...', level=3)
+        for key in self.ambient_metadata.keys():
+            processed_ambient_dfs[key]['actual_attack'] = False
 
+        self.log('Adding actual attack column for attack data...', level=3)
+        for key, attack_file_metadata in self.attack_metadata.items():
+            self.log(f'Adding actual attack column for {key}...', level=4)
+            injection_data_str = attack_file_metadata.get("injection_data_str")
+            injection_id = attack_file_metadata.get("injection_id")
+            injection_interval = attack_file_metadata.get("injection_interval")
 
+            # print(injection_data_str, injection_id, injection_interval)
+            if not (injection_data_str and injection_data_str and injection_data_str):
+                self.log(f"Missing metadata for {key}. Skipping...", level=4)
+                continue
+    
+            processed_attack_dfs[key]['actual_attack'] = False
+            if injection_id == "XXX":
+                for index, row in processed_attack_dfs[key].iterrows():
+                    if injection_interval[0] < row['time'] < injection_interval[1] \
+                        and payload_matches(row['data'], injection_data_str):
+                            processed_attack_dfs[key].at[index, 'actual_attack'] = True
+            else:
+                for index, row in processed_attack_dfs[key].iterrows():
+                    # some of the injection ids are in hex some are in decimal
+                    try: injection_id = int(injection_id, 16)
+                    except: pass
+                    if injection_interval[0] < row['time'] < injection_interval[1] \
+                        and row['aid'] == injection_id \
+                        and payload_matches(row['data'], injection_data_str):
+                                processed_attack_dfs[key].at[index, 'actual_attack'] = True
 
+        return processed_ambient_dfs, processed_attack_dfs
