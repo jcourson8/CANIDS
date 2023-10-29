@@ -280,19 +280,36 @@ class CanDataLoader():
         processed_ambient_dfs= {} 
         for key, ambient_file_df in self.preprocessed_ambient_dfs.items():
             self.log(f'Processing {key}...', level=2)
-            processed_ambient_dfs[key] = add_time_diff_per_aid_col(ambient_file_df, True)
-            processed_ambient_dfs[key] = add_time_diff_since_last_msg_col(ambient_file_df, True)
+            self._add_time_diff_per_aid_col(ambient_file_df)
+            self._add_time_diff_since_last_msg_col(ambient_file_df)
+            processed_ambient_dfs[key] = ambient_file_df
 
         processed_attack_dfs = {}
         for key, attack_file_df in self.preprocessed_attack_dfs.items():
             self.log(f'Processing {key}...', level=2)
-            processed_attack_dfs[key] = add_time_diff_per_aid_col(attack_file_df, True)
-            processed_attack_dfs[key] = add_time_diff_since_last_msg_col(attack_file_df, True)
+            self._add_time_diff_per_aid_col(attack_file_df)
+            self._add_time_diff_since_last_msg_col(attack_file_df)
+            processed_attack_dfs[key] = attack_file_df
 
         self.log('Annotating data...', level=2)
         processed_ambient_dfs, processed_attack_dfs = self._add_actual_attack_col(processed_ambient_dfs, processed_attack_dfs)
 
         return processed_ambient_dfs, processed_attack_dfs
+    
+    def _add_time_diff_per_aid_col(self, df, order_by_time=True):
+        if order_by_time:
+            df.sort_values(by="time", ascending=True, inplace=True)
+        
+        df["delta_time_last_msg"] = df["time"].diff().fillna(0)
+        # No return statement needed
+
+    def _add_time_diff_since_last_msg_col(self, df, order_by_time=True):
+        if order_by_time:
+            df.sort_values(by="time", ascending=True, inplace=True)
+        
+        df["last_time"] = df.groupby("aid")["time"].shift()
+        df["delta_time_last_same_aid"] = df["time"] - df["last_time"]
+        df.drop(columns=["last_time"], inplace=True)
     
     def _add_actual_attack_col(self, processed_ambient_dfs, processed_attack_dfs):
         self.log('Adding actual attack column for ambient data...', level=3)
