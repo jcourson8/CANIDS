@@ -6,6 +6,10 @@ import requests
 import zipfile
 import os
 import shutil
+import numpy as np
+from tqdm import tqdm
+import polars as pl
+import gc
 
 DATASET_DOWNLOAD_LINK = "https://road.nyc3.digitaloceanspaces.com/road.zip"
 
@@ -17,6 +21,197 @@ def payload_matches(payload, injection_data_str):
             if value != injection_data_str[i]:
                 return False
     return True
+
+# def prep_data_helper(df, config):
+#     X = []
+#     for index, row in df.iterrows():
+#         data_point = []
+#         valid_data_point = True
+#         for col, col_config in config.items():
+#             if col_config["specific_to_can_id"]:
+#                 # Extract past records for the same CAN ID
+#                 same_id_rows = df[(df["aid"] == row["aid"]) & (df.index < index)]
+#                 if len(same_id_rows) >= col_config["records_back"]:
+#                     values = same_id_rows[col].iloc[-col_config["records_back"]:].values
+#                 else:
+#                     valid_data_point = False
+#                     break
+#             else:
+#                 # Extract past records irrespective of CAN ID
+#                 prev_rows = df[df.index < index]
+#                 if len(prev_rows) >= col_config["records_back"]:
+#                     values = prev_rows[col].iloc[-col_config["records_back"]:].values
+#                 else:
+#                     valid_data_point = False
+#                     break
+#             data_point.extend(values)
+#         if valid_data_point:
+#             X.append(data_point)
+
+# def process_data_for_config_key(df, aid, config_key, config_value):
+#     """
+#     Helper function to process data for a specific config key.
+#     """
+
+#     if config_value['specific_to_can_id']:
+#         relevant_rows = df[df['aid'] == aid].tail(config_value['records_back'])
+#     else:
+#         relevant_rows = df.tail(config_value['records_back'])
+
+#     if len(relevant_rows) < config_value['records_back']:
+#         return None
+
+#     return relevant_rows[config_key].tolist()
+
+# def data_preparation_helper(df, config):
+#     """
+#     Process the dataframe based on the given configuration.
+#     """
+#     processed_data = []
+
+#     # Iterate over each row in the dataframe
+#     for index, row in tqdm(df.iterrows(), total=df.shape[0]):
+#         aid = row['aid']  # Extract the 'aid' from the current row
+#         data_row = [aid]
+
+#         skip_row = False
+
+#         # Process each key in the config
+#         for config_key, config_value in config.items():
+#             processed_values = process_data_for_config_key(df[:index], aid, config_key, config_value)
+
+#             if processed_values is None:
+#                 skip_row = True
+#                 break
+
+#             data_row.extend(processed_values)
+
+#         # If there weren't enough records back for any config key, skip the row
+#         if skip_row:
+#             continue
+
+#         # Append the processed row to the result
+#         processed_data.append(data_row)
+
+#     return processed_data
+
+# def process_data_for_config_key(df, aid, config_key, config_value):
+#     """
+#     Helper function to process data for a specific config key.
+#     """
+#     if config_value['specific_to_can_id']:
+#         relevant_df = df[df['aid'] == aid]
+#     else:
+#         relevant_df = df
+
+#     start_idx = max(0, len(relevant_df) - config_value['records_back'])
+#     relevant_rows = relevant_df.iloc[start_idx:]
+
+#     if relevant_rows.shape[0] < config_value['records_back']:
+#         return None
+
+#     return relevant_rows[config_key].tolist()
+
+# def data_preparation_helper(df, config):
+#     """
+#     Process the dataframe based on the given configuration.
+#     """
+#     processed_data = []
+
+#     # Iterate over each index in the dataframe
+#     for index in tqdm(range(df.shape[0])):
+#         aid = df.iloc[index]['aid']  # Extract the 'aid' from the current row
+#         data_row = [aid]
+
+#         skip_row = False
+
+#         # Process each key in the config
+#         for config_key, config_value in config.items():
+#             processed_values = process_data_for_config_key(df.iloc[:index+1], aid, config_key, config_value)
+
+#             if processed_values is None:
+#                 skip_row = True
+#                 break
+
+#             data_row.extend(processed_values)
+
+#         # If there weren't enough records back for any config key, skip the row
+#         if skip_row:
+#             continue
+
+#         # Append the processed row to the result
+#         processed_data.append(data_row)
+
+#     return processed_data
+
+# def process_data_for_config_key_optimized(df, config_key, config_value):
+#     """
+#     Optimized helper function to process data for a specific config key.
+#     """
+#     if config_value['specific_to_can_id']:
+#         # Use groupby with rolling to get the last N records for each 'aid'
+#         grouped = df.groupby('aid')[config_key].rolling(config_value['records_back'], min_periods=1).apply(list, raw=True).reset_index()
+#         last_N_records = grouped.set_index('level_1')[config_key]
+#     else:
+#         last_N_records = df[config_key].rolling(config_value['records_back'], min_periods=1).apply(list, raw=True)
+    
+#     # Filter out rows that don't have the exact N records
+#     last_N_records = last_N_records[last_N_records.apply(len) == config_value['records_back']]
+    
+#     return last_N_records
+
+# def data_preparation_helper_optimized(df, config):
+#     """
+#     Optimized function to process the dataframe based on the given configuration.
+#     """
+#     result_df = df[['aid']].copy()
+    
+#     for config_key, config_value in config.items():
+#         result_df[config_key] = process_data_for_config_key_optimized(df, config_key, config_value)
+    
+#     # Drop rows with NaN (where we couldn't get N records)
+#     result_df = result_df.dropna()
+    
+#     return result_df
+
+
+import polars as pl
+
+def data_preparation_helper_optimized(df, config):
+    processed_data = []
+
+    # Ensure the DataFrame is a Polars DataFrame
+    if not isinstance(df, pl.DataFrame):
+        df = pl.DataFrame(df)
+
+    # Process each column based on the configuration
+    for column, column_config in config.items():
+        records_back = column_config['records_back']
+        specific_to_can_id = column_config['specific_to_can_id']
+
+        if specific_to_can_id:
+            # Create shifted columns based on the records_back value
+            for shift_val in range(1, records_back + 1):
+                shifted_column = pl.col(column).shift(shift_val).alias(f"{column}_shifted_{shift_val}")
+                df = df.with_columns(shifted_column)
+                
+            # Instead of aggregating into lists, we'll simply join on 'aid'. The shifted columns are already created in the DataFrame.
+            # There's no need for the df_grouped and join in this context.
+        else:
+            for i in range(1, records_back + 1):
+                shifted_col = pl.col(column).shift(i).alias(f"{column}_shifted_{i}")
+                df = df.with_columns(shifted_col)
+
+    # Filter out rows where any of the columns (except 'aid') have null values
+    df = df.drop_nulls()
+
+    # Convert the Polars DataFrame to a list of lists
+    processed_data = df.to_pandas().values.tolist()
+
+    return processed_data
+
+
+
 
 class Logger():
     def __init__(self, log_verbosity=0):
@@ -35,6 +230,7 @@ class Logger():
 # through an attribute of CanDataLoader
 class CanData():
     def __init__(self, dfs):
+        self.length = len(dfs)
         for key, item in dfs.items():
             setattr(self, key, item)
         self._keys = list(dfs.keys())
@@ -112,6 +308,25 @@ class CanDataLoader():
     
     def get_attack_data(self):
         return self.processed_attack_dfs
+    
+    def prepare_data(self, config):
+        training_data = []
+        self.log("Preparing training data...")
+        for df in tqdm(self.ambient_data, total=self.ambient_data.length):
+            training_data.extend(data_preparation_helper_optimized(df, config))
+            gc.collect()
+        self.log("Done preparing training data. Converting to np array", level=2)
+        # training_data = np.array(training_data)
+
+        testing_data = []
+        self.log("Preparing testing data...")
+        for df in tqdm(self.attack_data, total=self.attack_data.length):
+            testing_data.extend(data_preparation_helper_optimized(df, config))
+            gc.collect()
+        self.log("Done preparing testing data. Converting to np array", level=2)
+        # testing_data = np.array(testing_data)
+
+        return training_data, testing_data
     
     def _download_data(self):    
         self.log("Downloading the zip file...", 2)

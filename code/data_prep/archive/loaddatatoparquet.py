@@ -1,6 +1,6 @@
 from json import load
 from dotenv import load_dotenv
-from helpers import *
+from code.data_prep.helpers import *
 import os
 
 load_dotenv()
