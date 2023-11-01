@@ -1,6 +1,6 @@
 from json import load
 from dotenv import load_dotenv
-from helpers import *
+from code.data_prep.helpers import *
 import os
 
 load_dotenv()
@@ -69,7 +69,7 @@ for parquet_file in attack_keys:
     df = pd.read_parquet(parquet_filepath)
     attack_dfs[parquet_file] = df
 
-from helpers import add_time_diff_since_last_msg_col
+from code.data_prep.helpers import add_time_diff_since_last_msg_col
 
 ambient_dfs_with_time_diff = {} 
 for key, ambient_file_df in ambient_dfs.items():
