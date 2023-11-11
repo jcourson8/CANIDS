@@ -1,4 +1,5 @@
 from json import load
+from math import floor
 from helpers import *
 import os
 import pandas as pd
@@ -8,10 +9,225 @@ import os
 import shutil
 import numpy as np
 from tqdm import tqdm
-import polars as pl
+# import polars as pl
 import gc
 
+from TorchLoader import CANDataset
+
 DATASET_DOWNLOAD_LINK = "https://road.nyc3.digitaloceanspaces.com/road.zip"
+
+
+import numpy as np
+# from tensorflow.keras.utils import Sequence
+
+# class PreparedCANDataLoaderPolars(Sequence):
+#     def __init__(self, can_data, config, batch_size=32):
+#         self.num_rows = 0
+#         for df in can_data:
+#             self.num_rows += df.height - df.filter(pl.col("aid").is_null()).height
+#         self.can_data = can_data
+#         self.config = config
+#         self.batch_size = batch_size
+#         self.num_samples = len(can_data)
+#         self.current_df = 0
+#         self.completed_index = 0
+
+#     def __len__(self):
+#         return self.num_rows // self.batch_size
+
+#     def __getitem__(self, idx):
+#         current_df = self.can_data[self.current_df]
+#         processed_batch = self.extract_features(current_df)
+
+#         while len(processed_batch) < self.batch_size:
+#             self.current_df += 1
+#             if self.current_df >= len(self.can_data):
+#                 return None  # or an appropriate handling for the end of the dataset
+#             self.completed_index = 0
+#             current_df = self.can_data[self.current_df]
+#             processed_batch = self.extract_features(current_df)
+        
+#         return processed_batch
+
+#     def extract_features(self, df):
+#         processed_batch = []
+
+#         feature_len = 1
+#         for _, feature_config in self.config.items():
+#             feature_len += feature_config['records_back']
+
+#         while len(processed_batch) < self.batch_size:
+#             index = self.completed_index
+#             self.completed_index += 1
+#             row = df[index]
+
+#             features = [row['aid']]
+#             for feature_name, feature_config in self.config.items():
+#                 if feature_config['specific_to_can_id']:
+#                     # Filter the DataFrame by the CAN ID and then get the last N records
+#                     history = df.filter(pl.col('aid') == row['aid']).limit(index)
+#                     records = history.tail(feature_config['records_back'])
+#                 else:
+#                     # Get the last N records regardless of CAN ID
+#                     records = df.slice(max(0, index - feature_config['records_back']), feature_config['records_back'])
+
+#                 if records.height < feature_config['records_back']:
+#                     # Handle padding here if necessary
+#                     continue
+
+#                 feature_values = records[feature_name].to_list()
+#                 features.extend(feature_values)
+
+#             if len(features) != feature_len:
+#                 continue
+#             processed_batch.append(features)
+        
+#         return processed_batch
+
+
+
+
+
+
+
+# class PreparedCANDataLoader(Sequence):
+#     def __init__(self, can_data, config, batch_size=1):
+#         self.num_rows = 0
+#         for df in can_data:
+#             self.num_rows += len(df)
+#             df.dropna()
+
+#         self.can_data = can_data
+#         self.config = config
+#         self.batch_size = batch_size
+#         self.num_samples = len(can_data)
+#         self.current_df = 0
+#         self.completed_index = 0
+#         self.features_len = 1 # one because we are keeping the CANID to start it
+#         for _, feature_config in self.config.items():
+#             self.features_len += feature_config['records_back']
+
+
+#     def __len__(self):
+#         # Return the number of batches per epoch
+#         # return (self.num_samples + self.batch_size - 1) // self.batch_size
+#         return self.num_rows // self.batch_size
+
+#     def __getitem__(self, idx):
+#         current_df = self.can_data[self.current_df]
+#         processed_batch = self.extract_features(current_df)
+
+#         while len(processed_batch) < self.batch_size:
+#             self.current_df += 1
+#             if self.current_df >= len(self.can_data):
+#                 raise StopIteration
+            
+#             self.completed_index = 0
+#             current_df = self.can_data[self.current_df]
+#             processed_batch = self.extract_features(current_df)
+
+#         return processed_batch,processed_batch
+    
+#     def extract_features(self, df):
+
+#         processed_batch = []
+
+#         while len(processed_batch) < self.batch_size:
+
+#             if self.completed_index >= len(df):
+#                 return processed_batch
+            
+#             index = self.completed_index
+#             self.completed_index += 1
+#             row = df.iloc[index]
+#             features = [row['aid']]
+#             # features = []
+
+#             for feature_name, feature_config in self.config.items():
+#                 # If the feature requires looking back at specific CAN IDs
+#                 if feature_config['specific_to_can_id']:
+#                     # Filter the DataFrame by the CAN ID and then get the last N records
+#                     history = df[df['aid'] == row['aid']].iloc[:index]
+#                     records = history.tail(feature_config['records_back'])
+#                 else:
+#                     # Get the last N records regardless of CAN ID
+#                     records = df.iloc[max(0, index - feature_config['records_back']):index]
+
+#                 # If there aren't enough records, handle this case, e.g., by padding
+#                 if len(records) < feature_config['records_back']:
+#                     # Handle padding here if necessary
+#                     continue
+
+#                 feature_values = records[feature_name].tolist()
+#                 features.extend(np.array(feature_values))
+
+#             if len(features) != self.features_len:
+#                 continue
+#             # Add the extracted features for this row to the processed batch
+#             processed_batch.append(features)
+        
+#         return processed_batch
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # you'll have to get the current rows can id
+        # loop through each config and try to find N records back
+        # if you cant go to next iteration through can 
+        # if you get n records back 
+
+
+    # def extract_features(self, df):
+    #     # Initialize a list to hold the processed feature data for the batch
+    #     processed_batch = []
+
+    #     # Iterate over each row in the batch DataFrame
+    #     for index, row in df.iterrows():
+    #         # Initialize a list to hold the features for this row
+    #         features = []
+
+    #         # Iterate over each feature to be extracted based on the config
+    #         for feature_name, feature_config in self.config.items():
+    #             # If the feature requires looking back at specific CAN IDs
+    #             if feature_config['specific_to_can_id']:
+    #                 # Filter the DataFrame by the CAN ID and then get the last N records
+    #                 history = self.can_data[self.can_data['aid'] == row['aid']].iloc[self.completed_index:index]
+    #                 records = history.tail(feature_config['records_back'])
+    #             else:
+    #                 # Get the last N records regardless of CAN ID
+    #                 records = self.can_data.iloc[max(0, index - feature_config['records_back']):index]
+
+    #             # If there aren't enough records, handle this case, e.g., by padding
+    #             if len(records) < feature_config['records_back']:
+    #                 # Handle padding here if necessary
+    #                 pass
+
+    #             # Extract the feature from the records and append to the features list
+    #             # For example, you might want to take the 'delta_time_last_msg' from each record
+    #             feature_values = records[feature_name].tolist()
+    #             features.extend(feature_values)
+
+    #         # Add the extracted features for this row to the processed batch
+    #         processed_batch.append(features)
+
+    #     # Convert the processed batch to a NumPy array and return it
+    #     return np.array(processed_batch)
+
+    # def on_epoch_end(self):
+    #     # If you want to shuffle the data at the end of each epoch, implement it here
+    #     self.can_data_iter = iter(self.can_data)  # Reset the iterator for the next epoch
+
+
 
 def payload_matches(payload, injection_data_str):
     for i, value in enumerate(payload):
@@ -175,40 +391,41 @@ def payload_matches(payload, injection_data_str):
 #     return result_df
 
 
-import polars as pl
+# import polars as pl
 
-def data_preparation_helper_optimized(df, config):
-    processed_data = []
 
-    # Ensure the DataFrame is a Polars DataFrame
-    if not isinstance(df, pl.DataFrame):
-        df = pl.DataFrame(df)
+# def data_preparation_helper_optimized(df, config):
+#     processed_data = []
 
-    # Process each column based on the configuration
-    for column, column_config in config.items():
-        records_back = column_config['records_back']
-        specific_to_can_id = column_config['specific_to_can_id']
+#     # Ensure the DataFrame is a Polars DataFrame
+#     if not isinstance(df, pl.DataFrame):
+#         df = pl.DataFrame(df)
 
-        if specific_to_can_id:
-            # Create shifted columns based on the records_back value
-            for shift_val in range(1, records_back + 1):
-                shifted_column = pl.col(column).shift(shift_val).alias(f"{column}_shifted_{shift_val}")
-                df = df.with_columns(shifted_column)
+#     # Process each column based on the configuration
+#     for column, column_config in config.items():
+#         records_back = column_config['records_back']
+#         specific_to_can_id = column_config['specific_to_can_id']
+
+#         if specific_to_can_id:
+#             # Create shifted columns based on the records_back value
+#             for shift_val in range(1, records_back + 1):
+#                 shifted_column = pl.col(column).shift(shift_val).alias(f"{column}_shifted_{shift_val}")
+#                 df = df.with_columns(shifted_column)
                 
-            # Instead of aggregating into lists, we'll simply join on 'aid'. The shifted columns are already created in the DataFrame.
-            # There's no need for the df_grouped and join in this context.
-        else:
-            for i in range(1, records_back + 1):
-                shifted_col = pl.col(column).shift(i).alias(f"{column}_shifted_{i}")
-                df = df.with_columns(shifted_col)
+#             # Instead of aggregating into lists, we'll simply join on 'aid'. The shifted columns are already created in the DataFrame.
+#             # There's no need for the df_grouped and join in this context.
+#         else:
+#             for i in range(1, records_back + 1):
+#                 shifted_col = pl.col(column).shift(i).alias(f"{column}_shifted_{i}")
+#                 df = df.with_columns(shifted_col)
 
-    # Filter out rows where any of the columns (except 'aid') have null values
-    df = df.drop_nulls()
+#     # Filter out rows where any of the columns (except 'aid') have null values
+#     df = df.drop_nulls()
 
-    # Convert the Polars DataFrame to a list of lists
-    processed_data = df.to_pandas().values.tolist()
+#     # Convert the Polars DataFrame to a list of lists
+#     processed_data = df.to_pandas().values.tolist()
 
-    return processed_data
+#     return processed_data
 
 
 
@@ -253,6 +470,7 @@ class CanData():
                 return getattr(self._can_data, key)
             else:
                 raise StopIteration
+            
 
         
 class CanDataLoader():
@@ -309,24 +527,38 @@ class CanDataLoader():
     def get_attack_data(self):
         return self.processed_attack_dfs
     
-    def prepare_data(self, config):
-        training_data = []
-        self.log("Preparing training data...")
-        for df in tqdm(self.ambient_data, total=self.ambient_data.length):
-            training_data.extend(data_preparation_helper_optimized(df, config))
-            gc.collect()
-        self.log("Done preparing training data. Converting to np array", level=2)
-        # training_data = np.array(training_data)
+    def prepare_data(self, config: dict):
+        batch_size = config.pop("batch_size", None)
+        if not batch_size:
+            raise Exception("Config needs `batch_size`")
+        
 
-        testing_data = []
-        self.log("Preparing testing data...")
-        for df in tqdm(self.attack_data, total=self.attack_data.length):
-            testing_data.extend(data_preparation_helper_optimized(df, config))
-            gc.collect()
-        self.log("Done preparing testing data. Converting to np array", level=2)
-        # testing_data = np.array(testing_data)
 
-        return training_data, testing_data
+        ambient_dfs = []
+        validate_dfs = []
+        for i, df in enumerate(self.ambient_data):
+            if i < 3:
+                validate_dfs.append(df)
+            else:    
+                ambient_dfs.append(df)
+
+        ambient_data_loader = CANDataset(ambient_dfs, config, batch_size)
+        validate_data_loader = CANDataset(validate_dfs, config, batch_size)
+
+        attack_dfs = []
+        for df in self.attack_data:
+            attack_dfs.append(df)
+        attack_data_loader = CANDataset(attack_dfs, config, batch_size)
+
+        return ambient_data_loader, validate_data_loader, attack_data_loader
+    
+    def get_unique_can_ids(self):
+        df_list = []
+        df_list.extend([df for df in self.ambient_data])
+        df_list.extend([df for df in self.ambient_data])
+        df_concatenated = pd.concat(df_list, ignore_index=True)
+        return df_concatenated['aid'].unique()
+
     
     def _download_data(self):    
         self.log("Downloading the zip file...", 2)
