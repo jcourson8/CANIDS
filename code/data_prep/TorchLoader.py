@@ -3,7 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 
-class CANDataset(Dataset):
+class CANDataLoader(Dataset):
     def __init__(self, can_data, config, batch_size=1):
         self.can_data = can_data
         self.config = config

@@ -12,7 +12,7 @@ from tqdm import tqdm
 # import polars as pl
 import gc
 
-from TorchLoader import CANDataset
+from TorchLoader import CANDataLoader
 
 DATASET_DOWNLOAD_LINK = "https://road.nyc3.digitaloceanspaces.com/road.zip"
 
@@ -473,7 +473,7 @@ class CanData():
             
 
         
-class CanDataLoader():
+class CanDataset():
     def __init__(self, data_dir_path, log_verbosity=0):
         self.data_dir_path = data_dir_path
         self.log = Logger(log_verbosity)
@@ -527,28 +527,27 @@ class CanDataLoader():
     def get_attack_data(self):
         return self.processed_attack_dfs
     
-    def prepare_data(self, config: dict):
-        batch_size = config.pop("batch_size", None)
+    def get_dataloaders(self, config: dict):
+        batch_size = config.pop("batch_size", None) # ensure batch_size is in config
         if not batch_size:
             raise Exception("Config needs `batch_size`")
-        
 
-
+        num_of_ambient_files_for_validation = 3
         ambient_dfs = []
         validate_dfs = []
         for i, df in enumerate(self.ambient_data):
-            if i < 3:
+            if i < num_of_ambient_files_for_validation:
                 validate_dfs.append(df)
             else:    
                 ambient_dfs.append(df)
 
-        ambient_data_loader = CANDataset(ambient_dfs, config, batch_size)
-        validate_data_loader = CANDataset(validate_dfs, config, batch_size)
+        ambient_data_loader = CANDataLoader(ambient_dfs, config, batch_size)
+        validate_data_loader = CANDataLoader(validate_dfs, config, batch_size)
 
         attack_dfs = []
         for df in self.attack_data:
             attack_dfs.append(df)
-        attack_data_loader = CANDataset(attack_dfs, config, batch_size)
+        attack_data_loader = CANDataLoader(attack_dfs, config, batch_size)
 
         return ambient_data_loader, validate_data_loader, attack_data_loader
     
