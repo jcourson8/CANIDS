@@ -29,6 +29,7 @@ class CANDataLoader(Dataset):
         if self.current_df_index >= len(self.can_data):
             raise StopIteration
 
+        # can_data = [df1,df2,df3]
         current_df = self.can_data[self.current_df_index]
         processed_batch = self.extract_features(current_df)
 
@@ -41,7 +42,7 @@ class CANDataLoader(Dataset):
             current_df = self.can_data[self.current_df_index]
             processed_batch.extend(self.extract_features(current_df))
 
-            # Separate CAN IDs and features
+        # Separate CAN IDs and features
         can_ids = [item[0] for item in processed_batch]  # Extract CAN IDs
         features = [item[1:] for item in processed_batch]  # Extract features
 
