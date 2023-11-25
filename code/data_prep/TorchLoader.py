@@ -42,15 +42,27 @@ class CANDataLoader(Dataset):
             current_df = self.can_data[self.current_df_index]
             processed_batch.extend(self.extract_features(current_df))
 
-        # Separate CAN IDs and features
-        can_ids = [item[0] for item in processed_batch]  # Extract CAN IDs
-        features = [item[1:] for item in processed_batch]  # Extract features
+        # Extract CAN IDs, features, and actual attack labels
+        can_ids = [item[0] for item in processed_batch]
+        features = [item[1:-1] for item in processed_batch]  # Exclude the last item (attack label)
+        actual_attacks = [item[-1] for item in processed_batch]  # Extract actual attack labels
 
         # Convert to Tensors
-        can_ids = torch.tensor(can_ids, dtype=torch.long)  # CAN IDs as LongTensor
-        features = torch.tensor(features, dtype=torch.float32)  # Features as FloatTensor
+        can_ids = torch.tensor(can_ids, dtype=torch.long)
+        features = torch.tensor(features, dtype=torch.float32)
+        actual_attacks = torch.tensor(actual_attacks, dtype=torch.float32)  # Assuming binary labels
 
-        return can_ids, features
+        return can_ids, features, actual_attacks
+
+        # # Separate CAN IDs and features
+        # can_ids = [item[0] for item in processed_batch]  # Extract CAN IDs
+        # features = [item[1:] for item in processed_batch]  # Extract features
+
+        # # Convert to Tensors
+        # can_ids = torch.tensor(can_ids, dtype=torch.long)  # CAN IDs as LongTensor
+        # features = torch.tensor(features, dtype=torch.float32)  # Features as FloatTensor
+
+        # return can_ids, features
 
 
     def extract_features(self, df):
@@ -78,12 +90,19 @@ class CANDataLoader(Dataset):
                 feature_values = history[feature_name].tolist()
                 features.extend(feature_values)
 
-            if len(features) != self.features_len:
+            attack_label = row['actual_attack']  # Assuming 'actual_attack' is the column name
+            features.append(attack_label)
+
+            if len(features) != self.features_len + 1: # +1 for attack label
                 continue
 
             processed_batch.append(features)
 
         return processed_batch
+    
+    def reset(self):
+        self.current_df_index = 0
+        self.completed_index = 0
 
 # # Example Usage
 # config = {

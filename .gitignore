@@ -1,5 +1,6 @@
-/data/ambient
-/data/attacks
+/data/*
+
+/code/data_prep/saved_model
 
 .DS_Store
 

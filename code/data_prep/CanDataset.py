@@ -9,6 +9,7 @@ import os
 import shutil
 import numpy as np
 from tqdm import tqdm
+from copy import deepcopy
 # import polars as pl
 import gc
 
@@ -528,6 +529,7 @@ class CanDataset():
         return self.processed_attack_dfs
     
     def get_dataloaders(self, config: dict):
+        config = deepcopy(config)
         batch_size = config.pop("batch_size", None) # ensure batch_size is in config
         if not batch_size:
             raise Exception("Config needs `batch_size`")
@@ -676,7 +678,7 @@ class CanDataset():
                 log_filepath = os.path.join(ambient_dir, log_file)
                 self.log(f'Extracting {log_file}...', level=2)
                 df = make_can_df(log_filepath)
-                ambient_dfs[log_file[:-4]] = df[['time', 'aid', 'data']]
+                ambient_dfs[log_file[:-4]] = df[['time', 'aid', 'data', 'filename']]
 
         # Extract Attack Data
         attack_dfs = {}
@@ -686,7 +688,7 @@ class CanDataset():
                 log_filepath = os.path.join(attack_dir, log_file)
                 self.log(f'Extracting {log_file}...', level=2)
                 df = make_can_df(log_filepath)
-                attack_dfs[log_file[:-4]] = df[['time', 'aid', 'data']]
+                attack_dfs[log_file[:-4]] = df[['time', 'aid', 'data', 'filename']]
 
         return ambient_dfs, attack_dfs
 
@@ -764,6 +766,7 @@ class CanDataset():
 
         self.log('Adding actual attack column for attack data...', level=3)
         for key in self.attack_files:
+            found_attack = False
             attack_file_metadata = self.attack_metadata[key]
             self.log(f'Adding actual attack column for {key}...', level=4)
             injection_data_str = attack_file_metadata.get("injection_data_str")
@@ -780,6 +783,7 @@ class CanDataset():
                 for index, row in processed_attack_dfs[key].iterrows():
                     if injection_interval[0] < row['time'] < injection_interval[1] \
                         and payload_matches(row['data'], injection_data_str):
+                            found_attack = True
                             processed_attack_dfs[key].at[index, 'actual_attack'] = True
             else:
                 for index, row in processed_attack_dfs[key].iterrows():
@@ -789,6 +793,10 @@ class CanDataset():
                     if injection_interval[0] < row['time'] < injection_interval[1] \
                         and row['aid'] == injection_id \
                         and payload_matches(row['data'], injection_data_str):
+                                found_attack = True
                                 processed_attack_dfs[key].at[index, 'actual_attack'] = True
+            
+            if found_attack:
+                self.log(f'Found attack for {key}...', level=4)
 
         return processed_ambient_dfs, processed_attack_dfs

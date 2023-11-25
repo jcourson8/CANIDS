@@ -70,11 +70,11 @@ def make_can_df(log_filepath):
     Puts candump data into a dataframe with columns 'time', 'aid', and 'data'
     """
     can_df = pd.read_fwf(
-        log_filepath, delimiter=' ' + '#' + '('+')',
-        skiprows=1, skipfooter=1,
-        usecols=[0, 2, 3],
-        dtype={0: 'float64', 1: str, 2: str},
-        names=['time', 'aid', 'data'])
+        log_filepath, delimiter = ' '+ '#' + '('+')',
+        skiprows = 1,skipfooter=1,
+        usecols = [0,2,3],
+        dtype = {0:'float64', 1:str, 2: str},
+        names = ['time','aid', 'data'] )
 
     # print(can_df)
 
@@ -82,6 +82,11 @@ def make_can_df(log_filepath):
     # pad with 0s on the left for data with dlc < 8
     can_df.data = can_df.data.apply(lambda x: x.zfill(16))
     can_df.time = can_df.time - can_df.time.min()
+
+    filename = os.path.basename(log_filepath)
+    
+    # add filename col
+    can_df['filename'] = filename
 
     # print(can_df)
     return can_df[can_df.aid <= 0x700]
