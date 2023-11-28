@@ -2,7 +2,7 @@
 import os 
 import sys 
 parent_dir = os.path.dirname(os.getcwd())
-sys.path.append(parent_dir + "/code")
+sys.path.append("/home/jbc0071/Documents/CANIDS/code")
 
 from model.CANnoloAttackDetector import CANnoloAttackDetector
 from data_helpers.CANDataset import CANDataset
