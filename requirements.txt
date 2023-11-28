@@ -1,3 +1,8 @@
 python-dotenv  
 pandas
 pyarrow
+fastparquet
+numpy 
+requests
+tqdm
+polars
