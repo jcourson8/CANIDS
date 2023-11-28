@@ -81,4 +81,4 @@ def load_and_visualize_log_scale(file_path):
 
     plt.show()
 
-load_and_visualize('./training_metadata.tsv')
+load_and_visualize('./data/training_metadata.tsv')
