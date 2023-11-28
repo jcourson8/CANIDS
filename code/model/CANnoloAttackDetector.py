@@ -37,6 +37,28 @@ class CANnoloAttackDetector:
 
         return results
 
+    def get_scores(self, data_loader):
+        self.model.eval()  # Ensure the model is in evaluation mode
+        scores_and_labels = []
+        
+        with torch.no_grad():
+            for batch in data_loader:
+                can_ids, features, actual_attacks = batch
+                can_ids, features = can_ids.to(self.model.device), features.to(self.model.device)
+                
+                reconstructed = self.model(can_ids, features)
+
+                # Compute anomaly scores and predict attacks
+                scores = self.compute_anomaly_scores(features, reconstructed)
+                
+
+                # Store predictions and actual labels
+                scores_and_labels.extend(zip(scores, actual_attacks.tolist()))
+        
+        data_loader.reset()
+
+        return scores_and_labels
+
     def compute_anomaly_scores(self, original, reconstructed):
         # Compute anomaly scores (e.g., mean squared error) for each instance in the batch
         loss_fn = torch.nn.MSELoss(reduction='none')
