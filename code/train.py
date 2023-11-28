@@ -26,6 +26,22 @@ unique_can_ids = dataset.get_unique_can_ids()
 num_can_ids = len(unique_can_ids)
 feature_vec_length = ambient_loader.features_len
 
+"""
+FFF -> embedding_layer ->   embedding_representation
+                            delta_time_last_msg0
+                            ...
+                            delta_time_last_msgN
+                            delta_time_last_same_aid0
+                            ...
+                            delta_time_last_same_aidN
+
+embedding_layer:
+    input: CAN ID (12 bits) 000000000000
+                            |||||||||||||
+                                HIDDEN
+                                \/
+    output: embedding_representation (embedding_dim bits out (?))
+"""
 model_config = {
     "embedding_dim": num_can_ids,
     "lstm_units": 128,
@@ -34,6 +50,7 @@ model_config = {
     "num_embeddings": max(unique_can_ids) + 1, # not sure why + 1 rn but it works
     "feature_vec_length": calculate_feature_vec_length(config)
 }
+
 
 model = CANnoloAutoencoder(**model_config)
 

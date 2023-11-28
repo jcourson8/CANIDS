@@ -17,7 +17,7 @@ class CANnoloAttackDetector:
         results = []
         
         with torch.no_grad():
-            for batch in data_loader:
+            for batch in tqdm(data_loader):
                 can_ids, features, actual_attacks = batch
                 can_ids, features = can_ids.to(self.model.device), features.to(self.model.device)
                 
