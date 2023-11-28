@@ -4,9 +4,12 @@ from .CANnoloAutoencoder import CANnoloAutoencoder
 import torch
 
 class CANnoloAttackDetector:
-    def __init__(self, model_path, threshold, config):
+    def __init__(self, model_path, threshold, config, force_cpu=False):
+
         # Model
-        self.model = CANnoloAutoencoder(**config)
+        self.model = CANnoloAutoencoder(force_cpu=force_cpu, **config)
+
+
         self.loss_fn = torch.nn.BCELoss()
         state_dict = torch.load(model_path)
         self.model.load_state_dict(state_dict)
@@ -17,7 +20,7 @@ class CANnoloAttackDetector:
         results = []
         
         with torch.no_grad():
-            for batch in tqdm(data_loader):
+            for batch in data_loader:
                 can_ids, features, actual_attacks = batch
                 can_ids, features = can_ids.to(self.model.device), features.to(self.model.device)
                 

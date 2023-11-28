@@ -6,9 +6,10 @@ import os
 import numpy as np
 
 class CANnoloAutoencoder(nn.Module):
-    def __init__(self, embedding_dim, lstm_units, dense_units, dropout_rate, num_embeddings, feature_vec_length, **kwargs):
+    def __init__(self, embedding_dim, lstm_units, dense_units, dropout_rate, num_embeddings, feature_vec_length, force_cpu=False, **kwargs):
         super(CANnoloAutoencoder, self).__init__()
 
+        self.force_cpu = force_cpu
         self.device = self.get_device()
         self.loss_fn = nn.BCELoss()  # Binary Cross-Entropy Loss
         # self.mse_loss = torch.nn.MSELoss()
@@ -43,8 +44,14 @@ class CANnoloAutoencoder(nn.Module):
 
         return reconstructed
     
-    @staticmethod
-    def get_device():
+    # def force_cpu(self):
+    #     self.force_cpu = True
+
+    def get_device(self):
+        if self.force_cpu:
+            print("Forcing CPU usage...")
+            return torch.device("cpu")
+        
         if torch.cuda.is_available():
             print("CUDA is available. Using CUDA...")
             return torch.device("cuda")
