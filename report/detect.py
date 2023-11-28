@@ -18,7 +18,7 @@ def get_scores(loader, detector):
     filename = loader.can_data[0].filename[0]
     print(f"Testing on {filename}")
     scores_and_labels = detector.get_scores(loader)
-    return filename, scores_and_labels
+    return [filename, scores_and_labels]
 
 def get_scores_wrapper(args):
     return get_scores(args[0], args[1])
