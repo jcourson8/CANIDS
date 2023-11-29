@@ -86,7 +86,7 @@ class CANnoloAutoencoder(nn.Module):
 
         return avg_loss
 
-    def train_loop(self, train_loader, validation_loader, training_metadata_file, model_save_directory, num_epochs=inf, psuedo_epoch_size=3000):
+    def train_loop(self, train_loader, validation_loader, training_metadata_file, model_save_directory, num_epochs=inf, psuedo_epoch_size=3000, validation_epoch_size=1000):
         total_train_loss = 0
         pseudo_epoch = 1
         num_processed_batches_in_epoch = train_loader.batch_size * psuedo_epoch_size
@@ -123,7 +123,7 @@ class CANnoloAutoencoder(nn.Module):
                     continue
 
                 # Validate model
-                validation_loss = self._validate_model(validation_loader, self.loss_fn)
+                validation_loss = self._validate_model(validation_loader, num_batches_to_validate=validation_epoch_size)
                 print(f"Psuedo Epoch {pseudo_epoch}, Validation Loss: {validation_loss}")
 
                 # Show training progress

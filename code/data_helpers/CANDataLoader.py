@@ -74,6 +74,10 @@ class CANDataLoader(Dataset):
                     # Handle padding or other strategies here
                     continue
 
+                # Check and handle NaN values
+                if history[feature_name].isna().any():
+                    continue
+
                 feature_values = history[feature_name].tolist()
                 features.extend(feature_values)
 
