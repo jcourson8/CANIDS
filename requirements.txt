@@ -1,6 +1,6 @@
-pandas
+pandas # I had issues where I needed pandas at 2.1.3 at times, but the issue did not always occur
 ipykernel
-pytorch
+torch
 python-dotenv  
 pyarrow
 fastparquet
