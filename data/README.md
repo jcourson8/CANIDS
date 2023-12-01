@@ -1,4 +1,4 @@
-# ROAD Dataset readme
+# ROAD Dataset README (archive)
 
 If you plan to use this dataset for your research, please cite our paper:
 
@@ -15,7 +15,6 @@ If you plan to use this dataset for your research, please cite our paper:
 The goal of this dataset is to provide an open realistic verified CAN dataset for benchmarking CAN IDS methods. We include raw CAN data and signal-translated CAN data both captured in ambient and attack settings. This data was captured on a singal vehicle and all attacks were physically verified--we observed and documented the effect of the CAN manipulations on the vehicle's functionality.
 
 The fundamental advantage of ROAD dataset over prior efforts is that ours come from realistic verified labeled attacks as opposed to synthetic datasets. Each of the files in our dataset contains time series coming from hundreds of IDs that may have dozen of signals. This opens the possibility for CAN R&D based on a high-fidelity dataset allowing the evaluation, comparison, and validation of CAN signal-based IDS algorithms.
-
 
 
 ## File Structure
