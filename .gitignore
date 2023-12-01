@@ -1,3 +1,5 @@
+.vscode
+
 /data/*
 
 /code/data_prep/saved_model
