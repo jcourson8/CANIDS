@@ -295,6 +295,11 @@ class CANDataset():
             attack_parquet_file = os.path.join(attack_dir, f'{key}.parquet')
             attack_file_df.to_parquet(attack_parquet_file, index=False)
 
+    def _standardize_columns(self, df, cols_to_normalize):
+        scaler = StandardScaler()
+        df[cols_to_normalize] = scaler.fit_transform(df[cols_to_normalize])
+        return df, scaler.mean_, scaler.scale_
+
     def _process_can_data(self):
         processed_ambient_dfs= {} 
         for key, ambient_file_df in self.preprocessed_ambient_dfs.items():

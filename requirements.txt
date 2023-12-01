@@ -1,5 +1,7 @@
-python-dotenv  
 pandas
+ipykernel
+pytorch
+python-dotenv  
 pyarrow
 fastparquet
 numpy 

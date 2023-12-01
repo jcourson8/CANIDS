@@ -5,18 +5,14 @@ import torch
 
 class CANnoloAttackDetector:
     def __init__(self, model_path, threshold, config, force_cpu=False):
-
-        # Model
         self.model = CANnoloAutoencoder(force_cpu=force_cpu, **config)
-
-
-        self.loss_fn = torch.nn.BCELoss()
+        self.loss_fn = torch.nn.MSELoss()
         state_dict = torch.load(model_path)
         self.model.load_state_dict(state_dict)
         self.threshold = threshold
 
     def detect_attacks(self, data_loader):
-        self.model.eval()  # Ensure the model is in evaluation mode
+        self.model.eval() 
         results = []
         
         with torch.no_grad():
@@ -38,7 +34,7 @@ class CANnoloAttackDetector:
         return results
 
     def get_scores(self, data_loader):
-        self.model.eval()  # Ensure the model is in evaluation mode
+        self.model.eval()
         scores_and_labels = []
         
         with torch.no_grad():
@@ -51,7 +47,6 @@ class CANnoloAttackDetector:
                 # Compute anomaly scores and predict attacks
                 scores = self.compute_anomaly_scores(features, reconstructed)
                 
-
                 # Store predictions and actual labels
                 scores_and_labels.extend(zip(scores, actual_attacks.tolist()))
         
@@ -79,7 +74,6 @@ class CANnoloAttackDetector:
                 all_scores.extend(scores.tolist())
                 print(np.percentile(all_scores, percentile), end='\r')
 
-        # Consider using a high percentile as the threshold
         threshold = np.percentile(all_scores, percentile)  # for example, 95th percentile
         normal_data_loader.reset()
         return threshold

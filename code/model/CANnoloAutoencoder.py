@@ -11,8 +11,7 @@ class CANnoloAutoencoder(nn.Module):
 
         self.force_cpu = force_cpu
         self.device = self.get_device()
-        self.loss_fn = nn.BCELoss()  # Binary Cross-Entropy Loss
-        # self.mse_loss = torch.nn.MSELoss()
+        self.loss_fn = nn.MSELoss()  # Mean Squared Error Loss
         
         # Encoder
         self.embedding = nn.Embedding(num_embeddings, embedding_dim)
@@ -31,7 +30,6 @@ class CANnoloAutoencoder(nn.Module):
     def forward(self, can_ids, features):
         # Encoding
         embedded_ids = self.embedding(can_ids)
-        # You might need to concatenate the embedded IDs with other features
         x = torch.cat([embedded_ids, features], dim=1)
         x = torch.tanh(self.encoder_dense(x))
         x = self.encoder_dropout(x)
@@ -43,9 +41,7 @@ class CANnoloAutoencoder(nn.Module):
         reconstructed = self.decoder_output(x)
 
         return reconstructed
-    
-    # def force_cpu(self):
-    #     self.force_cpu = True
+
 
     def get_device(self):
         if self.force_cpu:
@@ -63,7 +59,7 @@ class CANnoloAutoencoder(nn.Module):
             return torch.device("cpu")
 
     def _validate_model(self, validation_loader, num_batches_to_validate=1000):
-        self.eval()  # Set the model to evaluation mode
+        self.eval()
         total_loss = 0
         with torch.no_grad():  # No need to track gradients during validation
             for i, batch in enumerate(validation_loader):
@@ -151,53 +147,3 @@ class CANnoloAutoencoder(nn.Module):
 
                 pseudo_epoch += 1
                 total_train_loss = 0
-            
-    # def detect_attacks(self, data_loader, model_path, threshold):
-    #     state_dict = torch.load(model_path)
-    #     self.load_state_dict(state_dict)
-    #     self.threshold = threshold
-    #     self.eval()  # Ensure the model is in evaluation mode
-    #     results = []
-        
-    #     with torch.no_grad():
-    #         for batch in tqdm(data_loader):
-    #             can_ids, features, actual_attacks = batch
-                
-    #             reconstructed = self(can_ids, features)
-
-    #             # Compute anomaly scores and predict attacks
-    #             scores = self._compute_anomaly_scores(features, reconstructed)
-    #             predicted_attacks = (scores > self.threshold).int()  # Convert to 0 or 1
-
-    #             # Store predictions and actual labels
-    #             results.extend(zip(predicted_attacks.tolist(), actual_attacks.tolist()))
-        
-    #     data_loader.reset()
-
-    #     return results
-
-    # def _compute_anomaly_scores(self, original, reconstructed):
-    #     # Compute anomaly scores (e.g., mean squared error) for each instance in the batch
-    #     # loss_fn = torch.nn.MSELoss(reduction='none')
-    #     scores = self.loss_fn(original, reconstructed)
-
-    #     return scores.mean(dim=1)  # Mean score across features for each instance
-    
-    # def _determine_threshold(self, normal_data_loader, percentile=95):
-    #     self.eval() 
-    #     all_scores = []
-
-    #     with torch.no_grad():
-    #         for batch in tqdm(normal_data_loader):
-    #             can_ids, features, _ = batch  # Assuming normal data does not have actual attacks
-    #             can_ids, features = can_ids.to(self.device), features.to(self.device)
-    #             reconstructed = self(can_ids, features)
-    #             scores = self._compute_anomaly_scores(features, reconstructed)
-    #             all_scores.extend(scores.tolist())
-
-    #     # Consider using a high percentile as the threshold
-    #     threshold = np.percentile(all_scores, percentile)  # for example, 95th percentile
-    #     normal_data_loader.reset()
-
-    #     return threshold
-
